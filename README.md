@@ -21,6 +21,8 @@ Telegram-бот, который возвращает пользователю о
 
 ## 🛠️ Технологический стек
 
+### Сам бот (этот репозиторий)
+
 | Компонент | Технология |
 | :--- | :--- |
 | Язык | Node.js 18 |
@@ -30,8 +32,16 @@ Telegram-бот, который возвращает пользователю о
 | Реестр образов | Docker Hub (`docin82/echo-bot`) |
 | Оркестрация | Kubernetes (Docker Desktop) |
 | CI/CD | Jenkins (Kubernetes-агент) |
-| Мониторинг | Prometheus + Grafana |
-| Алертинг | Alertmanager → Telegram |
-| IaC | Ansible |
+
+### Инфраструктура (связанные репозитории)
+
+| Компонент | Технология | Где |
+| :--- | :--- | :--- |
+| Мониторинг | Prometheus + Grafana | [ansible-monitoring](https://github.com/goncharukinna/ansible-monitoring) |
+| Алертинг | Alertmanager → Telegram | [ansible-monitoring](https://github.com/goncharukinna/ansible-monitoring) |
+| IaC (для мониторинга) | **Ansible** | [ansible-monitoring](https://github.com/goncharukinna/ansible-monitoring) |
+
+⚠️ **Важно:** Ansible **не управляет** этим ботом. Он используется **отдельно** для развёртывания системы мониторинга (Prometheus, Grafana, Alertmanager). Деплой самого echo-bot выполняет **Jenkins** — см. раздел CI/CD.
+
 
 
