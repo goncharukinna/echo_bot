@@ -1,0 +1,16 @@
+# Секреты
+.env
+*.key
+*.pem
+kubeconfig*.yaml
+
+# Зависимости
+node_modules/
+
+# Логи
+*.log
+npm-debug.log*
+
+# Системные
+.DS_Store
+Thumbs.db
