@@ -2,55 +2,13 @@ pipeline {
     agent {
         kubernetes {
             label 'node-agent'
-            yaml '''
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-  - name: jnlp
-    image: jenkins/inbound-agent:latest
-    args: ['$(JENKINS_SECRET)', '$(JENKINS_NAME)']
-    volumeMounts:
-    - mountPath: /home/jenkins/agent
-      name: workspace-volume
-  - name: node
-    image: node:18-alpine
-    command: ['cat']
-    tty: true
-    volumeMounts:
-    - mountPath: /home/jenkins/agent
-      name: workspace-volume
-  - name: docker
-    image: docker:latest
-    command: ['cat']
-    tty: true
-    volumeMounts:
-    - mountPath: /var/run/docker.sock
-      name: docker-socket
-    - mountPath: /home/jenkins/agent
-      name: workspace-volume
-  - name: kubectl
-    image: alpine/kubectl:latest
-    command: ['sleep', 'infinity']
-    tty: true
-    volumeMounts:
-    - mountPath: /home/jenkins/agent
-      name: workspace-volume
-  volumes:
-  - name: docker-socket
-    hostPath:
-      path: /var/run/docker.sock
-  - name: workspace-volume
-    emptyDir: {}
-'''
+            yamlFile 'pod.yaml'
         }
     }
 
     environment {
         NAMESPACE = 'default'
         DOCKER_IMAGE = 'docin82/echo-bot'
-        DEPLOYMENT_NAME = 'echo-bot'
-        CONTAINER_NAME = 'echo-bot'
     }
 
     stages {
@@ -64,7 +22,7 @@ spec:
         stage('Install Dependencies') {
             steps {
                 container('node') {
-                    sh 'npm install'
+                    sh 'npm install --registry=https://registry.npmmirror.com'
                 }
             }
         }
@@ -108,15 +66,25 @@ spec:
             }
         }
 
-        stage('Deploy to Kubernetes') {
+        stage('Update GitOps Repo') {
             steps {
-                container('kubectl') {
-                    script {
-                        sh """
-                            kubectl set image deployment/${DEPLOYMENT_NAME} \
-                                ${CONTAINER_NAME}=${DOCKER_IMAGE}:${env.BUILD_ID} \
-                                -n ${NAMESPACE}
-                        """
+                container('git') {
+                    withCredentials([usernamePassword(
+                        credentialsId: 'github-token',
+                        usernameVariable: 'GIT_USER',
+                        passwordVariable: 'GIT_TOKEN'
+                    )]) {
+                        sh '''
+                            git clone https://${GIT_USER}:${GIT_TOKEN}@github.com/goncharukinna/bots-gitops.git /tmp/gitops
+                            cd /tmp/gitops
+                            sed -i "s|image: docin82/echo-bot:.*|image: docin82/echo-bot:${BUILD_ID}|" manifests/echo-bot/deployment.yaml
+                            git config user.name "Jenkins"
+                            git config user.email "jenkins@example.com"
+                            git add manifests/echo-bot/deployment.yaml
+                            git commit -m "echo-bot: update to ${BUILD_ID} [skip ci]"
+                            git push
+                            echo "✅ GitOps обновлён до версии ${BUILD_ID}"
+                        '''
                     }
                 }
             }
@@ -124,7 +92,11 @@ spec:
     }
 
     post {
-        success { echo "🎉 ${DOCKER_IMAGE} собран и задеплоен" }
-        failure { echo "❌ Ошибка сборки" }
+        success {
+            echo "🎉 echo-bot ${BUILD_ID} собран, запушен и обновлён в GitOps"
+        }
+        failure {
+            echo "❌ Ошибка сборки"
+        }
     }
 }
