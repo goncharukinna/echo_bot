@@ -15,7 +15,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
-                echo "✅ Код склонирован"
+                echo "Код склонирован"
             }
         }
 
@@ -83,7 +83,7 @@ pipeline {
                             git add manifests/echo-bot/deployment.yaml
                             git commit -m "echo-bot: update to ${BUILD_ID} [skip ci]"
                             git push
-                            echo "✅ GitOps обновлён до версии ${BUILD_ID}"
+                            echo "GitOps обновлён до версии ${BUILD_ID}"
                         '''
                     }
                 }
@@ -93,10 +93,10 @@ pipeline {
 
     post {
         success {
-            echo "🎉 echo-bot ${BUILD_ID} собран, запушен и обновлён в GitOps"
+            echo "echo-bot ${BUILD_ID} собран, запушен и обновлён в GitOps"
         }
         failure {
-            echo "❌ Ошибка сборки"
+            echo "Ошибка сборки"
         }
     }
 }
